@@ -1,87 +1,73 @@
 # Cloudreve Docker
 
-![](https://img.shields.io/github/workflow/status/xavier-niu/cloudreve-docker/Publish%20Docker) ![](https://img.shields.io/badge/cloudreve-3.5.1-brightgreen) ![](https://img.shields.io/docker/image-size/xavierniu/cloudreve/latest) ![](https://img.shields.io/docker/pulls/xavierniu/cloudreve) ![](https://img.shields.io/badge/maintainer-xavierniu-lightgrey)
+![](https://img.shields.io/github/actions/workflow/status/xavier-niu/cloudreve-docker/dockerhub.yml) ![](https://img.shields.io/docker/v/vedla/cloudreve/latest) ![](https://img.shields.io/docker/image-size/vedla/cloudreve/latest) ![](https://img.shields.io/docker/pulls/vedla/cloudreve) ![](https://img.shields.io/badge/maintainer-vedla-lightgrey)
 
-优势
+Advantages
 
-- 基于最新的 [Cloudreve V3](https://github.com/cloudreve/Cloudreve)
-- 长期维护
-- 镜像体积小
-- 纯净安装，无多余组件
-- 支持多种架构（amd64, arm64, arm32/v7）
-- 简易安装
-- 内含详细的 Cloudreve+Nginx+Aria2 部署教程
+- Based on [Cloudreve V4](https://github.com/cloudreve/Cloudreve)
+- Long-term maintenance
+- Multiple version tags available, so you can pin the exact Cloudreve release you want
+- Small image size (built from the official prebuilt binaries, no local compilation needed)
+- Clean install, no extra bloat
+- Multi-architecture support (amd64, arm64, arm/v7)
+- Easy to set up
+- Built-in Aria2 for offline downloads (no separate container required)
+- Detailed Cloudreve + Nginx deployment guide included
 
-## 获取 PUID 和 PGID
+## Available tags
 
-为什么要使用 PUID 和 PGID 参见 [Understanding PUID and PGID](https://docs.linuxserver.io/general/understanding-puid-and-pgid)。假设当前登陆用户为 `root`，则执行 `id root` 就会得到类似于下面的一段代码：
+- `<version>` (e.g. `4.17.0`): a specific pinned Cloudreve v4 release
+- `4`: always points at the newest Cloudreve v4 release published by this project
+- `latest`: same as `4`
 
-```
-uid=1000(root) gid=1001(root)
-```
+See the full list of published versions on [Docker Hub](https://hub.docker.com/r/vedla/cloudreve/tags).
 
-则在运行命令中的 PUID 填入 `1000`，PGID填入 `1001`。
+## Getting started
 
-## 开始
+Directories
 
-目录
+- `<PATH TO data>`: data directory that stores the config, database, avatars, uploads, and Aria2 downloads, e.g. `/dockercnf/cloudreve/data`
 
-- `<PATH TO uploads>`:上传目录，如 `/sharedfolders`
-- `<PATH TO config>`: 配置文件夹，如 `/dockercnf/cloudreve/config`
-- `<PATH TO db>`: 数据库文件夹，如 `/dockercnf/cloudreve/db`
-- `<PATH TO avatar>`: 头像文件夹，如 `/dockercnf/cloudreve/avatar`
-
-创建配置文件夹
+Create the data directory
 
 ```bash
-mkdir -p <PATH TO config>
+mkdir -p <PATH TO data>
 ```
 
-创建配置文件 `vim <PATH TO config>/conf.ini `（*该配置文件针对 SQLite 数据库，如需使用 MySQL 等数据库，请参见 cloudreve 官方文档*）
-
-```ini
-# conf.ini
-[Database]
-DBFile = /cloudreve/db/cloudreve.db
-```
-
-启动 cloudreve 容器
+Start the Cloudreve container
 
 ```bash
 docker run -d \
   --name cloudreve \
-  -e PUID=1000 \ # optional
-  -e PGID=1000 \ # optional
-  -e TZ="Asia/Shanghai" \ # optional
+  -e TZ="America/Toronto" \ # optional
   -p 5212:5212 \
+  -p 6888:6888 \
+  -p 6888:6888/udp \
   --restart=unless-stopped \
-  -v <PATH TO uploads>:/cloudreve/uploads \
-  -v <PATH TO config>:/cloudreve/config \
-  -v <PATH TO db>:/cloudreve/db \
-  -v <PATH TO avatar>:/cloudreve/avatar \
-  xavierniu/cloudreve
+  -v <PATH TO data>:/cloudreve/data \
+  vedla/cloudreve
 ```
 
-说明
+Notes
 
-- 首次启动后请执行 `docker logs -f cloudreve` 获取初始密码；
-- PUID 以及 PGID 的获取方式详见 `获取PUID和PGID`；
-- `TZ` 设置时区，默认值为 `Asia/Shanghai`。
+- Open `http://<your server>:5212` and register the first account — it is automatically made the site administrator (Cloudreve v4 no longer prints a generated admin password to the logs like v3 did).
+- `TZ` sets the container's timezone. Defaults to `America/Toronto` if not set.
+- To pin a specific Cloudreve version instead of the newest one, use an explicit tag, e.g. `vedla/cloudreve:4.17.0`.
 
-其他教程
+Other guides
 
-- 如果你想使用 Nginx 作为反向代理服务器，或者使用 Aira2 作为离线下载服务，请参阅 [Cloudreve Docker - NAC](https://github.com/xavier-niu/cloudreve-docker/blob/master/README-NAC.md)；
-- 如果你希望通过 docker-compose 的方式启动服务，请参阅 [Cloudreve Docker - Docker Compose](https://github.com/xavier-niu/cloudreve-docker/blob/master/README-DOCKER-COMPOSE.md)。
-- 如果您想远程云端启动服务，请参阅 [Cloudreve Docker - TeamCode](https://github.com/xavier-niu/cloudreve-docker/blob/master/README-TEAMCODE.md) (每月免费使用时间有限制，超过则需支付费用)。
+- If you want to use Nginx as a reverse proxy, see [Cloudreve Docker - Nginx](https://github.com/xavier-niu/cloudreve-docker/blob/master/README-NAC.md).
+- If you'd rather start the service with docker-compose, see [Cloudreve Docker - Docker Compose](https://github.com/xavier-niu/cloudreve-docker/blob/master/README-DOCKER-COMPOSE.md).
+- If you want to run the service remotely in the cloud, see [Cloudreve Docker - TeamCode](https://github.com/xavier-niu/cloudreve-docker/blob/master/README-TEAMCODE.md) (free usage time is limited per month; usage beyond that is billed).
 
-## 升级
+## Upgrading
 
-首先请暂停并移除正在运行的容器并从 Docker Hub 拉取最新的镜像
+Stop and remove the running container, then pull the new image
 
 ```bash
 docker stop cloudreve \
   && docker rm cloudreve \
-  && docker pull xavierniu/cloudreve
+  && docker pull vedla/cloudreve
 ```
 
-重复上面的运行步骤再次启动容器即可。
+Repeat the run steps above to start the container again.

@@ -1,41 +1,39 @@
-TeamCode Tin已将Cloudreve所需的云端运行环境打包成容器，用户点击即可直接在云端运行Cloudreve项目，从而完全跳过安装配置过程。
+TeamCode Tin has packaged the cloud runtime environment needed for Cloudreve into a container. Users can click a single button to run the Cloudreve project directly in the cloud, skipping the install/configuration process entirely.
 
-用户操作步骤：
+Steps for users:
 
-1.点击README中的Tin按钮（如下图），该按钮为Cloudreve Tin应用的访问网址。
+1. Click the Tin button in the README (shown below) — this button links to the Cloudreve Tin app.
 
 ![img](https://static01.teamcode.com/docs/202112201843912.png)
 
-2.点击按钮后，进入TeamCode登录页面（已登录用户可跳过该步骤）。
+2. After clicking the button, you'll land on the TeamCode login page (already-logged-in users can skip this step).
 
 ![img](https://static01.teamcode.com/docs/202112201843463.png)
 
-3.完成登录后，进入Tin应用页面。
+3. Once logged in, you'll land on the Tin app page.
 
 ![img](https://static01.teamcode.com/docs/202112201843272.png)
 
-4.点击 Clone，像fork github项目一样，将Cloudreve项目克隆到自己的Tin工作空间。
+4. Click Clone — just like forking a GitHub project, this clones the Cloudreve project into your own Tin workspace.
 
 ![img](https://static01.teamcode.com/docs/202112201843030.png)
 
-（如上图显示克隆成功）
+(The screenshot above shows a successful clone.)
 
-5.点击 RUN NOW，Tin应用会立即运行。
+5. Click RUN NOW and the Tin app will start immediately.
 
 ![img](https://static01.teamcode.com/docs/202112201843160.png)
 
-6.点击Endpoint Lists，可以看到访问Cloudreve的入口。
+6. Click Endpoint Lists to see the entry point for accessing Cloudreve.
 
 ![img](https://static01.teamcode.com/docs/202112201843049.png)
 
-7.点击图中红框的链接，即可立即访问Cloudreve。
+7. Click the link highlighted in red in the screenshot to access Cloudreve right away.
 
 ![img](https://static01.teamcode.com/docs/202112201844192.png)
 
-注册/登录后即可使用。
+Register or log in to start using it.
 
-
-
-注册TeamCode的用户，每个月都有免费计划可以使用。
+Registered TeamCode users get a free usage allowance every month.
 
 ![img](https://static01.teamcode.com/docs/202112201844339.png)

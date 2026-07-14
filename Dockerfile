@@ -1,48 +1,62 @@
-FROM golang:1.17.9-alpine as builder
+# syntax=docker/dockerfile:1
 
-ARG CLOUDREVE_VERSION="3.5.1"
+# Stage 1: fetch the official prebuilt Cloudreve v4 binary for the target platform.
+FROM alpine:latest AS downloader
 
-WORKDIR /ProjectCloudreve
+ARG CLOUDREVE_VERSION
+ARG TARGETARCH
+ARG TARGETVARIANT
 
-RUN apk update \
-    && apk add git yarn build-base gcc abuild binutils binutils-doc gcc-doc
+WORKDIR /download
 
-RUN git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
+RUN apk add --no-cache curl tar
 
-RUN cd ./Cloudreve/assets \
-    && yarn install --network-timeout 1000000 \
-    && yarn run build
+RUN set -eux; \
+    case "${TARGETARCH}${TARGETVARIANT}" in \
+      "amd64") CR_ARCH="amd64" ;; \
+      "arm64") CR_ARCH="arm64" ;; \
+      "armv7") CR_ARCH="armv7" ;; \
+      "armv6") CR_ARCH="armv6" ;; \
+      *) echo "Unsupported platform: ${TARGETARCH}${TARGETVARIANT}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL -o cloudreve.tar.gz \
+      "https://github.com/cloudreve/Cloudreve/releases/download/${CLOUDREVE_VERSION}/cloudreve_${CLOUDREVE_VERSION}_linux_${CR_ARCH}.tar.gz"; \
+    tar -xzf cloudreve.tar.gz; \
+    find . -maxdepth 2 -type f -name cloudreve -exec mv {} /download/cloudreve-bin \;
 
-RUN cd ./Cloudreve \
-    && go get github.com/rakyll/statik \
-    && statik -src=assets/build/ -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f \
-    && git checkout ${CLOUDREVE_VERSION} \
-    && export COMMIT_SHA=$(git rev-parse --short HEAD) \
-    && go build -a -o cloudreve-main -ldflags " -X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=$CLOUDREVE_VERSION' -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=$COMMIT_SHA'"
+# Stage 2: runtime image, mirrors upstream's own Dockerfile plus a build-time default timezone.
+FROM alpine:latest
 
-FROM lsiobase/alpine:3.13
+ARG CLOUDREVE_VERSION
+ENV TZ="America/Toronto"
 
-ENV PUID=1000
-ENV PGID=1000
-ENV TZ="Asia/Shanghai"
-
-LABEL MAINTAINER="Xavier Niu"
+LABEL maintainer="Xavier Niu"
+LABEL org.opencontainers.image.source="https://github.com/xavier-niu/cloudreve-docker"
+LABEL org.opencontainers.image.version="${CLOUDREVE_VERSION}"
 
 WORKDIR /cloudreve
 
-COPY --from=builder /ProjectCloudreve/Cloudreve/cloudreve-main /cloudreve/
-
-VOLUME ["/cloudreve/uploads", "/downloads", "/cloudreve/avatar", "/cloudreve/config", "/cloudreve/db"]
-
-RUN echo ">>>>>> update dependencies" \
-    && apk update \
-    && apk add tzdata \
-    && echo ">>>>>> set up timezone" \
+RUN apk update \
+    && apk add --no-cache tzdata vips-tools ffmpeg libreoffice aria2 supervisor font-noto font-noto-cjk libheif libraw-tools \
     && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
     && echo ${TZ} > /etc/timezone \
-    && echo ">>>>>> fix cloudreve-main premission" \
-    && chmod +x /cloudreve/cloudreve-main
+    && mkdir -p ./data/temp/aria2 \
+    && chmod -R 766 ./data/temp/aria2
 
-EXPOSE 5212
+ENV CR_ENABLE_ARIA2=1 \
+    CR_SETTING_DEFAULT_thumb_ffmpeg_enabled=1 \
+    CR_SETTING_DEFAULT_thumb_vips_enabled=1 \
+    CR_SETTING_DEFAULT_thumb_libreoffice_enabled=1 \
+    CR_SETTING_DEFAULT_media_meta_ffprobe=1 \
+    CR_SETTING_DEFAULT_thumb_libraw_enabled=1
 
-ENTRYPOINT ["./cloudreve-main", "-c", "/cloudreve/config/conf.ini"]
+COPY aria2.supervisor.conf entrypoint.sh ./
+COPY --from=downloader /download/cloudreve-bin ./cloudreve
+
+RUN chmod +x ./cloudreve ./entrypoint.sh
+
+EXPOSE 5212 6888 6888/udp
+
+VOLUME ["/cloudreve/data"]
+
+ENTRYPOINT ["sh", "./entrypoint.sh"]

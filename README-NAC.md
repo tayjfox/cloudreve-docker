@@ -1,19 +1,21 @@
-# Cloudreve Docker - NAC
+# Cloudreve Docker - Nginx reverse proxy
 
-NAC模式（Nginx+Aria2+Cloudreve），即启动Cloudreve，同时使用Nginx作为反向代理服务器以及Aria2作为离线下载服务（可选）。此教程仅在linux/amd64架构测试，如果您正在使用arm架构，部分参数请根据实际情况调整。在部署前，请先检查：
+This guide starts Cloudreve together with Nginx as a reverse proxy server. Aria2 is bundled inside the Cloudreve image itself, so no separate container is needed for offline downloads. This guide has only been tested on linux/amd64; if you're on arm, adjust parameters as needed.
 
-- 已安装docker，如果没有请执行`wget -qO- https://get.docker.com/ | bash`安装docker。
-- 一个域名并解析到运行Cloudreve的服务器，这里以`cloudreve.example.com`为例。
+Before you start, please check:
 
-## 开始
+- Docker is installed. If not, run `wget -qO- https://get.docker.com/ | bash` to install it.
+- You have a domain name pointed at the server running Cloudreve. This guide uses `cloudreve.example.com` as an example.
 
-### 创建Network
+## Getting started
+
+### Create a network
 
 ```bash
 docker network create my-network
 ```
 
-### 创建Nginx配置文件
+### Create the Nginx config file
 
 ```bash
 mkdir -p /dockercnf/nginx/conf.d \
@@ -21,7 +23,7 @@ mkdir -p /dockercnf/nginx/conf.d \
 	&& vim /dockercnf/nginx/conf.d/cloudreve.conf
 ```
 
-填入以下信息
+Add the following
 
 ```
 server {
@@ -33,7 +35,7 @@ server {
 }
 ```
 
-### 启动Nginx服务
+### Start the Nginx service
 
 ```bash
 docker run -d \
@@ -46,71 +48,22 @@ docker run -d \
   nginx:alpine
 ```
 
-### 启动Aria2服务（如不需要离线下载功能该步骤略过）
-
-```bash
-docker run -d \
-    --name aria2 \
-    --restart unless-stopped \
-    --log-opt max-size=1m \
-    --log-driver json-file \
-    -e PUID=1000 \
-    -e PGID=1000 \
-    -e RPC_SECRET=<SECRET> \
-    -p 6800:6800 \ #1
-    -p 6888:6888 -p 6888:6888/udp \
-    --network my-network \
-    -v <PATH TO config>:/config \
-    -v <PATH TO temp>:/downloads \
-    p3terx/aria2-pro
-```
-
-说明
-
-- PUID以及PGID的获取方式详见`获取PUID和PGID`。
-- `<SECRET>`: Aria2 RPC密码（你可以去[这里](https://miniwebtool.com/zh-cn/random-string-generator/)生成随机字符串）。请记下该密码！在后续Cloudreve设置Aria2中会使用。
-- `<PATH TO config>`: Aria2的配置文件夹，例如`/dockercnf/aria2/conf`。
-- `<PATH TO temp>`: 临时下载文件夹，需要与Cloudreve的`/downloads`对应，例如`/dockercnf/aria2/temp`。
-- 如果不需要外网访问Aria2可以将`#1`所在行删除。
-
-### 启动Cloudreve
+### Start Cloudreve
 
 ```bash
 docker run -d \
   --name cloudreve \
-  -e PUID=1000 \ # optional
-  -e PGID=1000 \ # optional
-  -e TZ="Asia/Shanghai" \ # optional
+  -e TZ="America/Toronto" \ # optional
   --network my-network \
   --restart=unless-stopped \
-  -v <PATH TO uploads>:/cloudreve/uploads \
-  -v <PATH TO temp>:/downloads \ #1
-  -v <PATH TO config>:/cloudreve/config \
-  -v <PATH TO db>:/cloudreve/db \
-  -v <PATH TO avatar>:/cloudreve/avatar \
-  xavierniu/cloudreve
+  -v <PATH TO data>:/cloudreve/data \
+  -p 6888:6888 -p 6888:6888/udp \
+  vedla/cloudreve
 ```
 
-说明
+Notes
 
-- 首次启动后请执行`docker logs -f cloudreve`获取初始密码
-
-- PUID以及PGID的获取方式详见`获取PUID和PGID`
-
-- `<PATH TO uploads>`:上传目录, 例如`/sharedfolders`
-- `<PATH TO temp>`: 临时下载文件夹，需要与Aria的`/downloads`对应，例如`/dockercnf/aria2/temp`（如不需要离线下载功能`#1`可以删除）
-- `<PATH TO config>`: 配置文件夹，如`/dockercnf/cloudreve/config`
-- `<PATH TO db>`: 数据库文件夹，如`/dockercnf/cloudreve/db`
-- `<PATH TO avatar>`: 头像文件夹，如`/dockercnf/cloudreve/avatar`
-
-### 配置Cloudreve连接Aria2服务器
-
-- 以管理员身份登陆
-- 点击"头像（右上角） > 管理面板"
-- 点击"参数设置 > 离线下载"
-
-  - RPC服务器地址: http://aria2:6800/
-  - RPC Secret: 参见`启动Aria2服务`中的`<SECRET>`
-  - 临时下载地址: /downloads
-  - 其他选项按照默认值即可
-- 测试连接并保存
+- `TZ` sets the container's timezone. Defaults to `America/Toronto` if not set.
+- `<PATH TO data>`: data directory that stores the config, database, avatars, uploads, and Aria2 downloads, e.g. `/dockercnf/cloudreve/data`.
+- Open `http://cloudreve.example.com` and register the first account — it is automatically made the site administrator.
+- Aria2 offline downloads work out of the box; there is no separate RPC server to configure.

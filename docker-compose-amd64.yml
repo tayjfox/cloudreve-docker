@@ -1,52 +1,27 @@
-version: '3'
-
-services: 
-    caddy: 
+services:
+    caddy:
         image: nginx:alpine
-        ports: 
+        ports:
             - 80:80
             - 443:443
-        volumes: 
+        volumes:
             - /dockercnf/nginx/conf.d:/etc/nginx/conf.d
             - /dockercnf/nginx/ssl:/etc/nginx/ssl
-        networks: 
+        networks:
             - cloudreve-network
         restart: unless-stopped
 
-    aria2: 
-        image: p3terx/aria2-pro
-        logging: 
-            options: 
-                max-size: 1m
-        ports: 
-            - 6800:6800
+    cloudreve:
+        image: vedla/cloudreve
+        ports:
             - 6888:6888
             - 6888:6888/udp
-        environment: 
-            - PUID=${CLOUDREVE_PUID}
-            - PGID=${CLOUDREVE_PGID}
-            - RPC_SECRET=${ARIA2_RPC_SECRET}
-        volumes: 
-            - ${ARIA2_CONFIG_PATH}:/config
-            - ${TEMP_FOLDER_PATH}:/downloads
-        networks: 
+        volumes:
+            - ${CLOUDREVE_DATA_PATH}:/cloudreve/data
+        networks:
             - cloudreve-network
         restart: unless-stopped
 
-    cloudreve: 
-        image: xavierniu/cloudreve
-        environment: 
-            - PUID=${CLOUDREVE_PUID}
-            - PGID=${CLOUDREVE_PGID}
-        volumes: 
-            - ${CLOUDREVE_UPLOAD_PATH}:/cloudreve/uploads
-            - ${TEMP_FOLDER_PATH}:/downloads
-            - ${CLOUDREVE_CONF_PATH}:/cloudreve/config
-            - ${CLOUDREVE_DB_PATH}:/cloudreve/db
-            - ${CLOUDREVE_AVATAR_PATH}:/cloudreve/avatar
-        networks: 
-            - cloudreve-network
 
-
-networks: 
+networks:
     cloudreve-network:

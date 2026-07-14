@@ -1,45 +1,79 @@
-name: build cloudreve image
+name: Build and publish Cloudreve images
 
-on: [push]
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: 'Comma-separated Cloudreve versions to build (e.g. "4.17.0,4.16.1"). Leave empty to use the default list in this workflow.'
+        required: false
 
 jobs:
-  docker:
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      latest: ${{ steps.set-matrix.outputs.latest }}
     steps:
-      # git checkout
+      # The list of Cloudreve v4 versions published as Docker images.
+      # Add a new version here (newest first) and push/dispatch to build and publish it.
+      - name: Build version matrix
+        id: set-matrix
+        run: |
+          DEFAULT_VERSIONS="4.17.0,4.16.1,4.16.0"
+          VERSIONS="${{ github.event.inputs.versions }}"
+          if [ -z "$VERSIONS" ]; then
+            VERSIONS="$DEFAULT_VERSIONS"
+          fi
+          FIRST_VERSION=$(echo "$VERSIONS" | cut -d',' -f1)
+          echo "latest=$FIRST_VERSION" >> "$GITHUB_OUTPUT"
+          MATRIX_JSON=$(echo "$VERSIONS" | tr ',' '\n' | jq -R . | jq -sc .)
+          echo "matrix=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
+
+  docker:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    steps:
       - name: Checkout
-        uses: actions/checkout@master
-      # prepare docker
+        uses: actions/checkout@v4
+
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@master
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: all
+
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@master
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v3
-        with:
-          images: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/cloudreve
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=ref,event=tag
-            type=sha
-      # build docker image
-      - name: Build
-        uses: docker/build-push-action@v2
+
+      - name: Build tag list
+        id: tags
+        run: |
+          TAGS="${{ secrets.DOCKERHUB_USERNAME }}/cloudreve:${{ matrix.version }}"
+          if [ "${{ matrix.version }}" = "${{ needs.prepare.outputs.latest }}" ]; then
+            TAGS="$TAGS,${{ secrets.DOCKERHUB_USERNAME }}/cloudreve:latest"
+            TAGS="$TAGS,${{ secrets.DOCKERHUB_USERNAME }}/cloudreve:4"
+          fi
+          echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            CLOUDREVE_VERSION=${{ matrix.version }}
+          tags: ${{ steps.tags.outputs.tags }}
