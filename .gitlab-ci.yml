@@ -75,10 +75,10 @@ docker_job:
     # Fetch the current matrix item value. GitLab matrix items map to a variable named after the JSON array key
     - CURRENT_VERSION="$value"
     # Build out the target tag strings
-    - TAG_ARGS="-t ${IMAGE_NAME}/cloudreve:${CURRENT_VERSION}"
+    - TAG_ARGS="-t ${IMAGE_NAME}:${CURRENT_VERSION}"
     - |
       if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
-        TAG_ARGS="$TAG_ARGS -t ${IMAGE_NAME}/cloudreve:latest -t ${IMAGE_NAME}/cloudreve:4"
+        TAG_ARGS="$TAG_ARGS -t ${IMAGE_NAME}:latest -t ${IMAGE_NAME}:4"
       fi
     # Execute the multi-architecture build and push
     - |
