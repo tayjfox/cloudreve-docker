@@ -17,38 +17,73 @@
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 
 stages:
+  - prepare
   - build
 
+# Define the manual input variable for workflow_dispatch parity
 variables:
-  DOCKER_BUILDKIT: 1
   IMAGE_NAME: "${CI_REGISTRY_IMAGE}"
-  IMAGE_TAG: "latest"
+  VERSIONS:
+    value: ""
+    description: 'Comma-separated Cloudreve versions to build (e.g. "4.17.0,4.16.1"). Leave empty to use the default list.'
 
-build-docker-multiarch:
-  image: docker:24.0.2
+# This controls when the entire pipeline is allowed to run
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+prepare_job:
+  stage: prepare
+  image: badouralix/curl-jq:latest # A lightweight image with jq installed
+  script:
+    - DEFAULT_VERSIONS="4.17.0"
+    # If the user did not provide input, fall back to the default
+    - |
+      if [ -z "$VERSIONS" ]; then
+        VERSIONS="$DEFAULT_VERSIONS"
+      fi
+    - FIRST_VERSION=$(echo "$VERSIONS" | cut -d',' -f1)
+    - MATRIX_JSON=$(echo "$VERSIONS" | tr ',' '\n' | jq -R . | jq -sc .)
+    # Save variables to a dotenv file so the next stage can inherit them dynamically
+    - echo "LATEST_VERSION=$FIRST_VERSION" > build.env
+    - echo "MATRIX_JSON=$MATRIX_JSON" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+docker_job:
   stage: build
+  image: docker:24.0.5 # Native docker CLI support
   services:
-    - name: docker:24.0.2-dind
-      alias: docker
-
+    - docker:24.0.5-dind # Enables Docker-in-Docker for building images
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-
+  needs:
+    - job: prepare_job
+      artifacts: true
   before_script:
-    - apk add --no-cache curl git bash
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-
-  script:
-    # wait for docker daemon to be available
-    - until docker info >/dev/null 2>&1; do echo "waiting for docker daemon..."; sleep 1; done
+    # Set up QEMU for multi-platform cross-compilation (linux/arm64, linux/arm/v7)
     - docker run --privileged --rm tonistiigi/binfmt --install all
-    - docker buildx create --use
+    # Initialize a multi-platform Buildx builder instance
+    - docker buildx create --use --name mybuilder
     - docker buildx inspect --bootstrap
-    - docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 --tag "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" --tag "$IMAGE_NAME:$IMAGE_TAG" --push .
-
-  only:
-    - main
-    - master
-
+    # Authenticate with DockerHub
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin
+  script:
+    # Fetch the current matrix item value. GitLab matrix items map to a variable named after the JSON array key
+    - CURRENT_VERSION="$value"
+    # Build out the target tag strings
+    - TAG_ARGS="-t ${IMAGE_NAME}/cloudreve:${CURRENT_VERSION}"
+    - |
+      if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
+        TAG_ARGS="$TAG_ARGS -t ${IMAGE_NAME}/cloudreve:latest -t ${IMAGE_NAME}/cloudreve:4"
+      fi
+    # Execute the multi-architecture build and push
+    - |
+      docker buildx build \
+        --platform linux/amd64,linux/arm64,linux/arm/v7 \
+        --build-arg CLOUDREVE_VERSION=${CURRENT_VERSION} \
+        ${TAG_ARGS} \
+        --push .
