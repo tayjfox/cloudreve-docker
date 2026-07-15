@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1
 
+ARG DEBIAN_SUITE=bookworm
+
 # Stage 1: fetch the official prebuilt Cloudreve v4 binary for the target platform.
 FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS downloader
 
@@ -31,7 +33,7 @@ RUN set -eux; \
     test -s /download/cloudreve-bin
 
 # Stage 2: runtime image, mirrors upstream's own Dockerfile plus a build-time default timezone.
-FROM debian:bookworm-slim
+FROM debian:${DEBIAN_SUITE}-slim
 
 ARG CLOUDREVE_VERSION
 ARG INSTALL_ARIA2=1

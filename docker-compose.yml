@@ -5,6 +5,7 @@ services:
             args:
                 CLOUDREVE_VERSION: ${CLOUDREVE_VERSION:-4.17.0}
                 INSTALL_ARIA2: ${INSTALL_ARIA2:-0}
+                DEBIAN_SUITE: ${DEBIAN_SUITE:-bookworm}
         image: cloudreve:${CLOUDREVE_VERSION:-4.17.0}-local
         environment:
             TZ: ${TZ:-America/Toronto}

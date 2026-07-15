@@ -63,6 +63,18 @@ Notes
 - Aria2 is not required for normal Cloudreve file browsing, uploads, and downloads. Enable it only if you use Cloudreve's offline/remote download feature; build with `INSTALL_ARIA2=1`, run with `CR_ENABLE_ARIA2=1`, and publish `6888/tcp` plus `6888/udp`.
 - To pin a specific Cloudreve version instead of the newest one, use an explicit tag, e.g. `vedla/cloudreve:4.17.0`.
 
+Troubleshooting ARMv7 NAS startup (`libc.so.6: ELF load command address/offset not page-aligned`)
+
+- Some older ARMv7 NAS kernels/runtimes fail with Debian Bookworm userland.
+- Rebuild with Debian Bullseye for compatibility:
+
+```bash
+docker compose build --build-arg DEBIAN_SUITE=bullseye --no-cache cloudreve
+docker compose up -d
+```
+
+- Or set `DEBIAN_SUITE=bullseye` in your `.env` to keep using Bullseye on future builds.
+
 Other guides
 
 - If you want to use Nginx as a reverse proxy, see [Cloudreve Docker - Nginx](https://github.com/vedla/cloudreve-docker/blob/master/README-NAC.md).
