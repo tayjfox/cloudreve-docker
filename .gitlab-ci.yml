@@ -70,7 +70,7 @@ docker_job:
     - docker buildx create --use --name mybuilder
     - docker buildx inspect --bootstrap
     # Authenticate with DockerHub
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   script:
     # Fetch the current matrix item value. GitLab matrix items map to a variable named after the JSON array key
     - CURRENT_VERSION="$value"
