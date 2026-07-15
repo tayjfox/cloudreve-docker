@@ -23,6 +23,7 @@ stages:
 # Define the manual input variable for workflow_dispatch parity
 variables:
   IMAGE_NAME: "${CI_REGISTRY_IMAGE}"
+  CURRENT_VERSION: 4.17.0
   VERSIONS:
     value: ""
     description: 'Comma-separated Cloudreve versions to build (e.g. "4.17.0,4.16.1"). Leave empty to use the default list.'
