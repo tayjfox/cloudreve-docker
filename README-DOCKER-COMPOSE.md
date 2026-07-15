@@ -36,28 +36,32 @@ server {
 Download the environment file
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/xavier-niu/cloudreve-docker/master/docker-compose-env-example > .env
+wget -qO- https://raw.githubusercontent.com/vedla/cloudreve-docker/master/docker-compose-env-example > .env
 ```
 
 Adjust the environment variables as needed
 
 - `CLOUDREVE_DATA_PATH`: path where Cloudreve stores its data (config, database, avatars, uploads, Aria2 downloads). Only change this if you know what you're doing.
+- `CLOUDREVE_VERSION`: Cloudreve release to download and package.
+- `CLOUDREVE_PLATFORM`: Docker platform to build for, e.g. `linux/arm/v7`, `linux/arm64`, or `linux/amd64`.
+- `INSTALL_ARIA2`: set to `1` only if you want Aria2 installed in the image.
+- `CR_ENABLE_ARIA2`: set to `1` only if you installed Aria2 and want it started with Cloudreve.
 
 Download the docker-compose file
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/xavier-niu/cloudreve-docker/master/docker-compose-amd64.yml > docker-compose.yml
+wget -qO- https://raw.githubusercontent.com/vedla/cloudreve-docker/master/docker-compose-amd64.yml > docker-compose.yml
 ```
 
 ### Start Docker Compose
 
 ```bash
-docker-compose up -d
+docker compose up --build -d
 ```
 
 Notes
 
-- Aria2 is bundled inside the Cloudreve container, so offline downloads work out of the box — there is no separate RPC server to configure.
+- Aria2 is optional. Normal Cloudreve browsing, uploads, and downloads do not need it; enable it only for offline/remote downloads.
 - Open `http://cloudreve.example.com` and register the first account — it is automatically made the site administrator.
 
 ### Using Traefik as the server

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Stage 1: fetch the official prebuilt Cloudreve v4 binary for the target platform.
-FROM alpine:latest AS downloader
+FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS downloader
 
 ARG CLOUDREVE_VERSION
 ARG TARGETARCH
@@ -9,9 +9,14 @@ ARG TARGETVARIANT
 
 WORKDIR /download
 
-RUN apk add --no-cache curl tar
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl tar; \
+    rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
+    : "${CLOUDREVE_VERSION:?Set CLOUDREVE_VERSION to a Cloudreve release, e.g. 4.17.0}"; \
+    : "${TARGETARCH:?TARGETARCH is required; build with BuildKit/buildx and --platform}"; \
     case "${TARGETARCH}${TARGETVARIANT}" in \
       "amd64") CR_ARCH="amd64" ;; \
       "arm64") CR_ARCH="arm64" ;; \
@@ -22,28 +27,35 @@ RUN set -eux; \
     curl -fsSL -o cloudreve.tar.gz \
       "https://github.com/cloudreve/Cloudreve/releases/download/${CLOUDREVE_VERSION}/cloudreve_${CLOUDREVE_VERSION}_linux_${CR_ARCH}.tar.gz"; \
     tar -xzf cloudreve.tar.gz; \
-    find . -maxdepth 2 -type f -name cloudreve -exec mv {} /download/cloudreve-bin \;
+    find . -maxdepth 2 -type f -name cloudreve -exec mv {} /download/cloudreve-bin \; ; \
+    test -s /download/cloudreve-bin
 
 # Stage 2: runtime image, mirrors upstream's own Dockerfile plus a build-time default timezone.
-FROM alpine:latest
+FROM debian:bookworm-slim
 
 ARG CLOUDREVE_VERSION
+ARG INSTALL_ARIA2=1
 ENV TZ="America/Toronto"
 
 LABEL maintainer="Xavier Niu"
-LABEL org.opencontainers.image.source="https://github.com/xavier-niu/cloudreve-docker"
+LABEL org.opencontainers.image.source="https://github.com/vedla/cloudreve-docker"
 LABEL org.opencontainers.image.version="${CLOUDREVE_VERSION}"
 
 WORKDIR /cloudreve
 
-RUN apk update \
-    && apk add --no-cache tzdata vips-tools ffmpeg libreoffice aria2 supervisor font-noto font-noto-cjk libheif libraw-tools \
-    && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
-    && echo ${TZ} > /etc/timezone \
-    && mkdir -p ./data/temp/aria2 \
-    && chmod -R 766 ./data/temp/aria2
+RUN set -eux; \
+    export DEBIAN_FRONTEND=noninteractive; \
+    packages="ca-certificates tzdata libvips-tools ffmpeg libreoffice fonts-noto fonts-noto-cjk libheif-examples libraw-bin"; \
+    if [ "${INSTALL_ARIA2}" = "1" ]; then packages="$packages aria2 supervisor"; fi; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends $packages; \
+    rm -rf /var/lib/apt/lists/*; \
+    cp /usr/share/zoneinfo/${TZ} /etc/localtime; \
+    echo ${TZ} > /etc/timezone; \
+    mkdir -p ./data/temp/aria2; \
+    chmod -R 755 ./data/temp/aria2
 
-ENV CR_ENABLE_ARIA2=1 \
+ENV CR_ENABLE_ARIA2=${INSTALL_ARIA2} \
     CR_SETTING_DEFAULT_thumb_ffmpeg_enabled=1 \
     CR_SETTING_DEFAULT_thumb_vips_enabled=1 \
     CR_SETTING_DEFAULT_thumb_libreoffice_enabled=1 \

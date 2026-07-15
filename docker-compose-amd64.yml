@@ -12,8 +12,18 @@ services:
         restart: unless-stopped
 
     cloudreve:
-        image: vedla/cloudreve
+        build:
+            context: .
+            args:
+                CLOUDREVE_VERSION: ${CLOUDREVE_VERSION:-4.17.0}
+                INSTALL_ARIA2: ${INSTALL_ARIA2:-0}
+        image: cloudreve:${CLOUDREVE_VERSION:-4.17.0}-local
+        platform: ${CLOUDREVE_PLATFORM:-linux/arm/v7}
+        environment:
+            TZ: ${TZ:-America/Toronto}
+            CR_ENABLE_ARIA2: ${CR_ENABLE_ARIA2:-0}
         ports:
+            - 5212:5212
             - 6888:6888
             - 6888:6888/udp
         volumes:

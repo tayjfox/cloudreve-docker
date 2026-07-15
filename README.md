@@ -7,11 +7,10 @@ Advantages
 - Based on [Cloudreve V4](https://github.com/cloudreve/Cloudreve)
 - Long-term maintenance
 - Multiple version tags available, so you can pin the exact Cloudreve release you want
-- Small image size (built from the official prebuilt binaries, no local compilation needed)
-- Clean install, no extra bloat
+- Debian Bookworm slim runtime, built from the official prebuilt binaries
 - Multi-architecture support (amd64, arm64, arm/v7)
 - Easy to set up
-- Built-in Aria2 for offline downloads (no separate container required)
+- Optional Aria2 support for offline downloads (no separate container required when enabled)
 - Detailed Cloudreve + Nginx deployment guide included
 
 ## Available tags
@@ -34,31 +33,41 @@ Create the data directory
 mkdir -p <PATH TO data>
 ```
 
+Build an ARMv7 image locally
+
+```bash
+docker buildx build --platform linux/arm/v7 \
+  --build-arg CLOUDREVE_VERSION=4.17.0 \
+  --build-arg INSTALL_ARIA2=0 \
+  -t cloudreve:armv7 \
+  --load .
+```
+
 Start the Cloudreve container
 
 ```bash
 docker run -d \
   --name cloudreve \
-  -e TZ="America/Toronto" \ # optional
+  -e TZ="America/Toronto" \
+  -e CR_ENABLE_ARIA2=0 \
   -p 5212:5212 \
-  -p 6888:6888 \
-  -p 6888:6888/udp \
   --restart=unless-stopped \
   -v <PATH TO data>:/cloudreve/data \
-  vedla/cloudreve
+  cloudreve:armv7
 ```
 
 Notes
 
 - Open `http://<your server>:5212` and register the first account — it is automatically made the site administrator (Cloudreve v4 no longer prints a generated admin password to the logs like v3 did).
 - `TZ` sets the container's timezone. Defaults to `America/Toronto` if not set.
+- Aria2 is not required for normal Cloudreve file browsing, uploads, and downloads. Enable it only if you use Cloudreve's offline/remote download feature; build with `INSTALL_ARIA2=1`, run with `CR_ENABLE_ARIA2=1`, and publish `6888/tcp` plus `6888/udp`.
 - To pin a specific Cloudreve version instead of the newest one, use an explicit tag, e.g. `vedla/cloudreve:4.17.0`.
 
 Other guides
 
-- If you want to use Nginx as a reverse proxy, see [Cloudreve Docker - Nginx](https://github.com/xavier-niu/cloudreve-docker/blob/master/README-NAC.md).
-- If you'd rather start the service with docker-compose, see [Cloudreve Docker - Docker Compose](https://github.com/xavier-niu/cloudreve-docker/blob/master/README-DOCKER-COMPOSE.md).
-- If you want to run the service remotely in the cloud, see [Cloudreve Docker - TeamCode](https://github.com/xavier-niu/cloudreve-docker/blob/master/README-TEAMCODE.md) (free usage time is limited per month; usage beyond that is billed).
+- If you want to use Nginx as a reverse proxy, see [Cloudreve Docker - Nginx](https://github.com/vedla/cloudreve-docker/blob/master/README-NAC.md).
+- If you'd rather start the service with docker-compose, see [Cloudreve Docker - Docker Compose](https://github.com/vedla/cloudreve-docker/blob/master/README-DOCKER-COMPOSE.md).
+- If you want to run the service remotely in the cloud, see [Cloudreve Docker - TeamCode](https://github.com/vedla/cloudreve-docker/blob/master/README-TEAMCODE.md) (free usage time is limited per month; usage beyond that is billed).
 
 ## Upgrading
 

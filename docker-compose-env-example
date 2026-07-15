@@ -2,3 +2,14 @@
 
 # > Path on the host where Cloudreve stores its data (config, database, avatars, uploads, aria2 downloads)
 CLOUDREVE_DATA_PATH=/dockercnf/cloudreve/data
+
+# > Cloudreve release and target platform used by docker compose build.
+CLOUDREVE_VERSION=4.17.0
+CLOUDREVE_PLATFORM=linux/arm/v7
+
+# > Aria2 is only needed for Cloudreve offline/remote download support.
+INSTALL_ARIA2=0
+CR_ENABLE_ARIA2=0
+
+# > Container timezone.
+TZ=America/Toronto

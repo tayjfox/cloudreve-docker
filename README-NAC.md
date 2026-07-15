@@ -53,7 +53,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name cloudreve \
-  -e TZ="America/Toronto" \ # optional
+  -e TZ="America/Toronto" \
   --network my-network \
   --restart=unless-stopped \
   -v <PATH TO data>:/cloudreve/data \
