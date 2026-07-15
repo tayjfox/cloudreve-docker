@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
-ARG DEBIAN_SUITE=bookworm
+ARG ALPINE_VERSION=3.21
 
 # Stage 1: fetch the official prebuilt Cloudreve v4 binary for the target platform.
-FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS downloader
+FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS downloader
 
 ARG CLOUDREVE_VERSION
 ARG TARGETARCH
@@ -12,9 +12,7 @@ ARG TARGETVARIANT
 WORKDIR /download
 
 RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl tar; \
-    rm -rf /var/lib/apt/lists/*
+  apk add --no-cache ca-certificates curl tar
 
 RUN set -eux; \
     : "${CLOUDREVE_VERSION:?Set CLOUDREVE_VERSION to a Cloudreve release, e.g. 4.17.0}"; \
@@ -33,7 +31,7 @@ RUN set -eux; \
     test -s /download/cloudreve-bin
 
 # Stage 2: runtime image, mirrors upstream's own Dockerfile plus a build-time default timezone.
-FROM debian:${DEBIAN_SUITE}-slim
+FROM alpine:${ALPINE_VERSION}
 
 ARG CLOUDREVE_VERSION
 ARG INSTALL_ARIA2=1
@@ -46,12 +44,9 @@ LABEL org.opencontainers.image.version="${CLOUDREVE_VERSION}"
 WORKDIR /cloudreve
 
 RUN set -eux; \
-    export DEBIAN_FRONTEND=noninteractive; \
-    packages="ca-certificates tzdata libvips-tools ffmpeg libreoffice fonts-noto fonts-noto-cjk libheif-examples libraw-bin"; \
-    if [ "${INSTALL_ARIA2}" = "1" ]; then packages="$packages aria2 supervisor"; fi; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends $packages; \
-    rm -rf /var/lib/apt/lists/*; \
+  packages="ca-certificates tzdata vips-tools ffmpeg libreoffice font-noto font-noto-cjk libheif-tools libraw-tools"; \
+  if [ "${INSTALL_ARIA2}" = "1" ]; then packages="$packages aria2 supervisor"; fi; \
+  apk add --no-cache $packages; \
     cp /usr/share/zoneinfo/${TZ} /etc/localtime; \
     echo ${TZ} > /etc/timezone; \
     mkdir -p ./data/temp/aria2; \

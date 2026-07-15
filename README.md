@@ -7,7 +7,7 @@ Advantages
 - Based on [Cloudreve V4](https://github.com/cloudreve/Cloudreve)
 - Long-term maintenance
 - Multiple version tags available, so you can pin the exact Cloudreve release you want
-- Debian Bookworm slim runtime, built from the official prebuilt binaries
+- Alpine-based runtime, built from the official prebuilt binaries
 - Multi-architecture support (amd64, arm64, arm/v7)
 - Easy to set up
 - Optional Aria2 support for offline downloads (no separate container required when enabled)
@@ -62,18 +62,6 @@ Notes
 - `TZ` sets the container's timezone. Defaults to `America/Toronto` if not set.
 - Aria2 is not required for normal Cloudreve file browsing, uploads, and downloads. Enable it only if you use Cloudreve's offline/remote download feature; build with `INSTALL_ARIA2=1`, run with `CR_ENABLE_ARIA2=1`, and publish `6888/tcp` plus `6888/udp`.
 - To pin a specific Cloudreve version instead of the newest one, use an explicit tag, e.g. `vedla/cloudreve:4.17.0`.
-
-Troubleshooting ARMv7 NAS startup (`libc.so.6: ELF load command address/offset not page-aligned`)
-
-- Some older ARMv7 NAS kernels/runtimes fail with Debian Bookworm userland.
-- Rebuild with Debian Bullseye for compatibility:
-
-```bash
-docker compose build --build-arg DEBIAN_SUITE=bullseye --no-cache cloudreve
-docker compose up -d
-```
-
-- Or set `DEBIAN_SUITE=bullseye` in your `.env` to keep using Bullseye on future builds.
 
 Other guides
 

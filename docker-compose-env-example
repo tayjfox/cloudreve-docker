@@ -6,8 +6,8 @@ CLOUDREVE_DATA_PATH=/dockercnf/cloudreve/data
 # > Cloudreve release and target platform used by docker compose build.
 CLOUDREVE_VERSION=4.17.0
 CLOUDREVE_PLATFORM=linux/arm/v7
-# > Runtime Debian suite. Use bullseye on older armv7 NAS if bookworm fails to start.
-DEBIAN_SUITE=bookworm
+# > Runtime Alpine version.
+ALPINE_VERSION=3.21
 
 # > Aria2 is only needed for Cloudreve offline/remote download support.
 INSTALL_ARIA2=0

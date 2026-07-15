@@ -44,6 +44,7 @@ Adjust the environment variables as needed
 - `CLOUDREVE_DATA_PATH`: path where Cloudreve stores its data (config, database, avatars, uploads, Aria2 downloads). Only change this if you know what you're doing.
 - `CLOUDREVE_VERSION`: Cloudreve release to download and package.
 - `CLOUDREVE_PLATFORM`: Docker platform to build for, e.g. `linux/arm/v7`, `linux/arm64`, or `linux/amd64`.
+- `ALPINE_VERSION`: Alpine release tag used for the runtime image.
 - `INSTALL_ARIA2`: set to `1` only if you want Aria2 installed in the image.
 - `CR_ENABLE_ARIA2`: set to `1` only if you installed Aria2 and want it started with Cloudreve.
 
